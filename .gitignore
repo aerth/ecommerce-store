@@ -1,0 +1,6 @@
+*.log
+*.db
+ecommerce-store
+tmp/*
+tmp
+ENV
