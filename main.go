@@ -78,7 +78,7 @@ func main() {
 
 			log.Println("Database Initialized.")
 
-			tx, err := db.Begin()
+		/*	tx, err := db.Begin()
 				if err != nil {
 
 				}
@@ -94,7 +94,7 @@ func main() {
 					}
 				}
 				tx.Commit()
-
+*/
 
 	http.HandleFunc("/join", joinhandler)
 	http.HandleFunc("/", homehandler)
