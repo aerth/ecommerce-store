@@ -26,6 +26,8 @@ import (
 	"net/url"
 	"os"
 	"time"
+	"database/sql"
+	_ "github.com/mattn/go-sqlite3"
 )
 
 type User struct {
@@ -38,11 +40,61 @@ type User struct {
 var PayPalC = os.Getenv("PayPalC")
 var PayPalK = os.Getenv("PayPalK")
 
+var globalSessions *session.Manager
+
+type DB struct {
+	*sql.DB
+
+}
+
 func main() {
 	if PayPalC == "" || PayPalK == "" {
 
 		log.Fatalln("Set PayPalC and PayPalK environmental variables.")
 	}
+
+
+	db, err := sql.Open("sqlite3", "./members.db")
+	if err != nil {
+			log.Fatal(err)
+		}
+		defer db.Close()
+
+
+	/*	sqlStmt := `CREATE TABLE members (
+		id	INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+		email	TEXT NOT NULL,
+		password	BLOB,
+		subscribed	TEXT
+	);`
+	_, err = db.Exec(sqlStmt)
+		if err != nil {
+			log.Printf("%q: %s\n", err, sqlStmt)
+			return
+		}
+
+		*/
+
+
+			log.Println("Database Initialized.")
+
+			tx, err := db.Begin()
+				if err != nil {
+
+				}
+				stmt, err := tx.Prepare("insert into members(id, email, password, subscribed) values(?, ?, ?, ?)")
+				if err != nil {
+
+				}
+				defer stmt.Close()
+				for i := 0; i < 700; i++ {
+					_, err = stmt.Exec(i, fmt.Sprintf("user%03d", i), fmt.Sprintf("password"), fmt.Sprintf("nil") )
+					if err != nil {
+
+					}
+				}
+				tx.Commit()
+
 
 	http.HandleFunc("/join", joinhandler)
 	http.HandleFunc("/", homehandler)
@@ -52,10 +104,8 @@ func main() {
 	http.HandleFunc("/cancel", cancelhandler)
 	http.HandleFunc("/fail", failhandler)
 	log.Println("Listening on 8080")
-	err := http.ListenAndServe(":8080", nil)
-	if err != nil {
-		log.Fatalln(err)
-	}
+	log.Fatalln(http.ListenAndServe(":8080", nil))
+
 }
 func joinhandler(w http.ResponseWriter, r *http.Request) {
 	var buf bytes.Buffer
@@ -255,7 +305,10 @@ func init() {
 		log.Fatalln(err)
 	}
 	c.SetLogFile("debug.log") // Set log file if necessary
-	globalSessions, _ = session.NewManager("file", `{"cookieName":"gosessionid","gclifetime":3600,"ProviderConfig":"./tmp"}`)
+	globalSessions, err = session.NewManager("file", `{"cookieName":"gosessionid","gclifetime":3600,"ProviderConfig":"./tmp"}`)
+	if err != nil {
+		log.Fatalln(err)
+	}
 	go globalSessions.GC()
 
 	go func() {
@@ -270,6 +323,31 @@ func init() {
 		}
 	}()
 
-}
 
-var globalSessions *session.Manager
+}
+/*
+func insertDB(email string, password []byte, subscribed string) (id string, error error){
+		tx, err := db.Begin()
+			if err != nil {
+			return _, err
+			}
+			stmt, err := tx.Prepare("insert into members(id, email, password, subscribed) values(?, ?, ?, ?)")
+			if err != nil {
+				return _, err
+			}
+			defer stmt.Close()
+			for i := 0; i < 700; i++ {
+				_, err = stmt.Exec(i, fmt.Sprintf("user%03d", i), fmt.Sprintf("password"), fmt.Sprintf("nil") )
+				if err != nil {
+					return _, err
+				}
+			}
+			tx.Commit()
+			 n, err := stmt.LastInsertId()
+			 if err != nil {
+				 return _, err
+			 }
+			 return n, nil
+
+}
+*/
